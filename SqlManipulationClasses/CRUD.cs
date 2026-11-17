@@ -1,5 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 using System.Data;
+using System.Reflection.PortableExecutable;
 
 namespace SqlManipulationClasses
 {
@@ -45,14 +46,32 @@ namespace SqlManipulationClasses
                 
             return tableNames;
         }
+
         public DataTable read(string tableName)
         {
-            DataTable tabledata = new DataTable ();
+            List<string> validTables = readAllTableNames();
+
+
+            using SqlConnection sqlConnectionReturnedValue = connection.CreateConnection();
+            DataTable tableData = new DataTable ();
 
             string query = $@"
                             SELECT *
                             FROM {tableName};
                             ";
+
+            if (!validTables.Contains(tableName))
+            {
+                throw new ArgumentException("Table name not valid.");
+            }
+
+            using SqlCommand command = new SqlCommand(query, sqlConnectionReturnedValue);
+            sqlConnectionReturnedValue.Open();
+
+            using SqlDataReader reader = command.ExecuteReader();
+            tableData.Load(reader);
+
+            return tableData;
         }
     }
 }
