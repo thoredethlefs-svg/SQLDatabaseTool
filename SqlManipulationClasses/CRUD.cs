@@ -1,30 +1,29 @@
 ﻿using Microsoft.Data.SqlClient;
 using System.Data;
-using System.Reflection.PortableExecutable;
 
 namespace SqlManipulationClasses
-{
-    
-    public class CRUD
     {
+
+    public class CRUD
+        {
         private readonly SQLPersonalConnection connection;
         public CRUD(SQLPersonalConnection connection)
-        { 
-        this.connection = connection;
-        }
+            {
+            this.connection = connection;
+            }
 
         public List<string> readAllTableNames()
-        {
+            {
             /*declaring a new variable that will hold the a refference to sqlConnectionReturnedValue object of type SqlConnection 
-             *assign it the value returned by the CreateConnection method of the connection object
-             */
-            using SqlConnection sqlConnectionReturnedValue = connection.CreateConnection(); 
+			 *assign it the value returned by the CreateConnection method of the connection object
+			 */
+            using SqlConnection sqlConnectionReturnedValue = connection.CreateConnection();
             string query = @"
-                           SELECT TABLE_SCHEMA, TABLE_NAME
-                           FROM INFORMATION_SCHEMA.TABLES
-                           WHERE TABLE_TYPE = 'BASE TABLE';"
+						   SELECT TABLE_SCHEMA, TABLE_NAME
+						   FROM INFORMATION_SCHEMA.TABLES
+						   WHERE TABLE_TYPE = 'BASE TABLE';"
                            ;
-            
+
             //create a new SqlCommand object by passing the query and the
             //sqlConnectionReturnedValue as parameters to the constructor of the SqlCommand class
             using SqlCommand command = new SqlCommand(query, sqlConnectionReturnedValue);
@@ -36,34 +35,38 @@ namespace SqlManipulationClasses
 
 
             //create a new list object containing strings by the name tableNames inside readAllTableNames
-            List<string> tableNames = new List<string>(); 
-                while (reader.Read())
+            List<string> tableNames = new List<string>();
+            while (reader.Read())
                 {
                 string schema = reader.GetString(0);
                 string name = reader.GetString(1);
-                tableNames.Add($"[{schema}].[{name}]");              
+
+                schema = schema.Replace("]", "]]");
+                name = name.Replace("]", "]]");
+
+                tableNames.Add($"[{schema}].[{name}]");
                 }
-                
+
             return tableNames;
-        }
+            }
 
         public DataTable read(string tableName)
-        {
+            {
             List<string> validTables = readAllTableNames();
 
 
             using SqlConnection sqlConnectionReturnedValue = connection.CreateConnection();
-            DataTable tableData = new DataTable ();
+            DataTable tableData = new DataTable();
 
             string query = $@"
-                            SELECT *
-                            FROM {tableName};
-                            ";
+							SELECT *
+							FROM {tableName};
+							";
 
             if (!validTables.Contains(tableName))
-            {
+                {
                 throw new ArgumentException("Table name not valid.");
-            }
+                }
 
             using SqlCommand command = new SqlCommand(query, sqlConnectionReturnedValue);
             sqlConnectionReturnedValue.Open();
@@ -72,6 +75,19 @@ namespace SqlManipulationClasses
             tableData.Load(reader);
 
             return tableData;
+            }
+
+        public int insertInto(string tableName, Dictionary<string, object?> values)
+            {
+
+            List<string> columnNames = new List<string>(values.Keys);
+            List<object?> columnValues = new List<object?>(values.Values);
+
+
+            foreach (var entry in values)
+                {
+
+                }
+            }
         }
     }
-}
