@@ -1,5 +1,7 @@
 ﻿using Microsoft.Data.SqlClient;
 using System.Data;
+using System.Diagnostics.Metrics;
+using System.Reflection.PortableExecutable;
 
 namespace SqlManipulationClasses
     {
@@ -12,6 +14,8 @@ namespace SqlManipulationClasses
             this.connection = connection;
             }
 
+
+        //Read all table names from the database
         public List<string> readAllTableNames()
             {
             /*declaring a new variable that will hold the a refference to sqlConnectionReturnedValue object of type SqlConnection 
@@ -50,6 +54,7 @@ namespace SqlManipulationClasses
             return tableNames;
             }
 
+        //Select SQL query
         public DataTable read(string tableName)
             {
             List<string> validTables = readAllTableNames();
@@ -77,17 +82,55 @@ namespace SqlManipulationClasses
             return tableData;
             }
 
+
+        //Insert SQL query
         public int insertInto(string tableName, Dictionary<string, object?> values)
             {
 
             List<string> columnNames = new List<string>(values.Keys);
             List<object?> columnValues = new List<object?>(values.Values);
+            List<string> parameterNames = new List<string>();
+            List<string> validTables = readAllTableNames();
+
+            using SqlConnection sqlConnectionReturnedValue = connection.CreateConnection();
 
 
+
+            string parameter = "@p0";
             foreach (var entry in values)
                 {
-
+                    parameterNames.Add(parameter);
+                    parameter = $"@p{parameterNames.Count}";
                 }
+
+            
+            string columnList = string.Join(", ", columnNames);
+            string valueList = string.Join(", ", parameterNames);
+
+            string query = $@"
+							INSERT INTO {tableName}
+							({columnList})
+							VALUES
+							({valueList})
+                            ;"
+                            ;
+
+            if (!validTables.Contains(tableName))
+            {
+                throw new ArgumentException("Table name not valid.");
             }
+
+
+            using SqlCommand command = new SqlCommand(query, sqlConnectionReturnedValue);
+
+            for (int i = 0; i < parameterNames.Count; i++)
+            {
+                command.Parameters.AddWithValue(parameterNames[i], columnValues[i] ?? DBNull.Value);
+            }
+
+            sqlConnectionReturnedValue.Open();
+
+
         }
+    }
     }
