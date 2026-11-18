@@ -155,11 +155,12 @@ namespace SqlManipulationClasses
             string columnListEscaped = string.Join(", ", columnNames.Select(c => $"[{c.Replace("]", "]]")}]"));
             string valueListEscaped = string.Join(", ", parameterNames.Select(p => $"{p}"));
 
+
             string query = $@"
 							INSERT INTO [{schema}].[{tableName}]
 							({columnListEscaped})
 							VALUES
-							({valueListEscaped})
+							({valueList})
                             ;"
                             ;
 
