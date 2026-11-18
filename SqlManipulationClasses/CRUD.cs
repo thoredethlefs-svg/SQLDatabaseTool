@@ -36,8 +36,6 @@ namespace SqlManipulationClasses
             //using SqlDataReader, the MS type, to create an object of it called reader that contains a refference to what command returns
             using SqlDataReader reader = command.ExecuteReader();
 
-
-
             //create a new list object containing strings by the name tableNames inside readAllTableNames
             List<string> tableNames = new List<string>();
             while (reader.Read())
