@@ -125,36 +125,38 @@ namespace SqlManipulationClasses
         public int insertInto(string Schema, string TableName, Dictionary<string, object?> values)
             {
 
+            if (values.Count == 0)
+                {
+                throw new ArgumentException("No values provided for insertion.");
+                }
+
             List<string> columnNames = new List<string>(values.Keys);
             List<object?> columnValues = new List<object?>(values.Values);
             List<string> parameterNames = new List<string>();
-            List<(string Schema, string TableName)> validTables = readAllTableNames();
+            List<string> validColumns = readAllColumnNames(Schema, TableName);
 
             using SqlConnection sqlConnectionReturnedValue = connection.CreateConnection();
-
-
-
             string parameter = "@p0";
-            foreach (var entry in values)
+           
+           foreach (var entry in values)
                 {
                     parameterNames.Add(parameter);
                     parameter = $"@p{parameterNames.Count}";
                 }
 
-            
-            string columnList = string.Join(", ", columnNames);
             string valueList = string.Join(", ", parameterNames);
-
-            if (!validTables.Contains((Schema, TableName)))
+         
+            foreach (string columnName in columnNames)
             {
-                throw new ArgumentException("Table name not valid.");
+                if (!validColumns.Contains(columnName))
+                {
+                    throw new ArgumentException($"Column name '{columnName}' not valid for table '{TableName}'.");
+                }
             }
 
             string schema = Schema.Replace("]", "]]");
             string tableName = TableName.Replace("]", "]]");
             string columnListEscaped = string.Join(", ", columnNames.Select(c => $"[{c.Replace("]", "]]")}]"));
-            string valueListEscaped = string.Join(", ", parameterNames.Select(p => $"{p}"));
-
 
             string query = $@"
 							INSERT INTO [{schema}].[{tableName}]
@@ -163,9 +165,6 @@ namespace SqlManipulationClasses
 							({valueList})
                             ;"
                             ;
-
-
-
 
             using SqlCommand command = new SqlCommand(query, sqlConnectionReturnedValue);
 
@@ -176,7 +175,8 @@ namespace SqlManipulationClasses
 
             sqlConnectionReturnedValue.Open();
 
-
+            int affectedRows = command.ExecuteNonQuery();
+            return affectedRows;
         }
     }
     }
