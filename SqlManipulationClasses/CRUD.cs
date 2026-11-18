@@ -16,7 +16,7 @@ namespace SqlManipulationClasses
 
 
         //Read all table names from the database
-        public List<string> readAllTableNames()
+        public List<(string Schema, string TableName)> readAllTableNames()
             {
             /*declaring a new variable that will hold the a refference to sqlConnectionReturnedValue object of type SqlConnection 
 			 *assign it the value returned by the CreateConnection method of the connection object
@@ -36,40 +36,80 @@ namespace SqlManipulationClasses
             //using SqlDataReader, the MS type, to create an object of it called reader that contains a refference to what command returns
             using SqlDataReader reader = command.ExecuteReader();
 
-            //create a new list object containing strings by the name tableNames inside readAllTableNames
-            List<string> tableNames = new List<string>();
+           //create a new list object containing strings by the name tableNames inside readAllTableNames
+            List<(string Schema, string TableName)> tables = new List<(string Schema, string TableName)>();
             while (reader.Read())
                 {
-                string schema = reader.GetString(0);
-                string name = reader.GetString(1);
+                string Schema = reader.GetString(0);
+                string TableName = reader.GetString(1);
 
-                schema = schema.Replace("]", "]]");
-                name = name.Replace("]", "]]");
-
-                tableNames.Add($"[{schema}].[{name}]");
+                tables.Add((Schema, TableName));
                 }
 
-            return tableNames;
+            return tables;
             }
 
-        //Select SQL query
-        public DataTable read(string tableName)
-            {
-            List<string> validTables = readAllTableNames();
+        //Read all column names from a specific table in the database
+        public List<string> readAllColumnNames(string Schema, string TableName)
+        {
+            List<(string Schema, string TableName)> validTables = readAllTableNames();
+            List<string> columnNames = new List<string>();
 
+            if (!validTables.Contains((Schema, TableName)))
+                {
+                    throw new ArgumentException("Table name not valid.");
+                }
+
+            using SqlConnection sqlConnectionReturnedValue = connection.CreateConnection();
+
+            string query = @"
+						   SELECT COLUMN_NAME
+                           FROM INFORMATION_SCHEMA.COLUMNS
+                           WHERE TABLE_SCHEMA = @schema
+                           AND TABLE_NAME = @tableName
+                           ORDER BY ORDINAL_POSITION;"
+                           ;
+
+            using SqlCommand command = new SqlCommand(query, sqlConnectionReturnedValue);
+
+            command.Parameters.AddWithValue("@schema", Schema);
+            command.Parameters.AddWithValue("@tableName", TableName);
+
+            sqlConnectionReturnedValue.Open();
+
+            using SqlDataReader reader = command.ExecuteReader();
+            
+            while (reader.Read())
+            {
+                string ColumnName = reader.GetString(0);
+                columnNames.Add(ColumnName);
+            }
+
+            return columnNames;
+
+        }
+
+
+        //Select SQL query
+        public DataTable read(string Schema, string TableName)
+        {
+            List<(string Schema, string TableName)> validTables = readAllTableNames();
 
             using SqlConnection sqlConnectionReturnedValue = connection.CreateConnection();
             DataTable tableData = new DataTable();
-
-            string query = $@"
-							SELECT *
-							FROM {tableName};
-							";
-
-            if (!validTables.Contains(tableName))
-                {
+                        
+            if (!validTables.Contains((Schema, TableName)))
+            {
                 throw new ArgumentException("Table name not valid.");
-                }
+            }
+
+            string schema = Schema.Replace("]", "]]");
+            string tableName = TableName.Replace("]", "]]");
+
+             string query = $@"
+							SELECT *
+							FROM [{schema}].[{tableName}];
+							";
 
             using SqlCommand command = new SqlCommand(query, sqlConnectionReturnedValue);
             sqlConnectionReturnedValue.Open();
@@ -82,13 +122,13 @@ namespace SqlManipulationClasses
 
 
         //Insert SQL query
-        public int insertInto(string tableName, Dictionary<string, object?> values)
+        public int insertInto(string Schema, string TableName, Dictionary<string, object?> values)
             {
 
             List<string> columnNames = new List<string>(values.Keys);
             List<object?> columnValues = new List<object?>(values.Values);
             List<string> parameterNames = new List<string>();
-            List<string> validTables = readAllTableNames();
+            List<(string Schema, string TableName)> validTables = readAllTableNames();
 
             using SqlConnection sqlConnectionReturnedValue = connection.CreateConnection();
 
@@ -105,18 +145,25 @@ namespace SqlManipulationClasses
             string columnList = string.Join(", ", columnNames);
             string valueList = string.Join(", ", parameterNames);
 
-            string query = $@"
-							INSERT INTO {tableName}
-							({columnList})
-							VALUES
-							({valueList})
-                            ;"
-                            ;
-
-            if (!validTables.Contains(tableName))
+            if (!validTables.Contains((Schema, TableName)))
             {
                 throw new ArgumentException("Table name not valid.");
             }
+
+            string schema = Schema.Replace("]", "]]");
+            string tableName = TableName.Replace("]", "]]");
+            string columnListEscaped = string.Join(", ", columnNames.Select(c => $"[{c.Replace("]", "]]")}]"));
+            string valueListEscaped = string.Join(", ", parameterNames.Select(p => $"{p}"));
+
+            string query = $@"
+							INSERT INTO [{schema}].[{tableName}]
+							({columnListEscaped})
+							VALUES
+							({valueListEscaped})
+                            ;"
+                            ;
+
+
 
 
             using SqlCommand command = new SqlCommand(query, sqlConnectionReturnedValue);
