@@ -36,4 +36,12 @@ Source reviewed on `main` at [`1c86a28`](https://github.com/thoredethlefs-svg/SQ
 2. Execute the INSERT with `ExecuteNonQuery()` and return its affected-row count.
 3. Complete the connection setup discussed in chat and run the read and insert paths against SQL Server. Check that the selected schema is respected, invalid identifiers are rejected, and quoted identifiers and nullable values work.
 
+### Local `insertInto()` follow-up
+
+The Visual Studio screenshot shows `insertInto(string Schema, string TableName, Dictionary<string, object?> values)` using a tuple list and checking `Contains((Schema, TableName))`. Parameter generation and `DBNull.Value` handling are still in place. The `CRUD.cs` on `main` still matches the pushed snapshot above.
+
+- The SQL string references lowercase `schema` and `tableName`, which are undefined in the method shown. Validate the original pair first, then create the lowercase variables by doubling `]` in `Schema` and `TableName`. The SQL string already surrounds each interpolated identifier with brackets.
+- Validate the dictionary keys with `readAllColumnNames()` and quote each accepted column name before joining the list.
+- The method still ends after opening the connection. Once validation and quoting are in place, return `command.ExecuteNonQuery()` and test against SQL Server.
+
 Add a dated entry when a milestone is reviewed or pushed. Include the GitHub commit for pushed work and record any local changes and database test results at that point.
