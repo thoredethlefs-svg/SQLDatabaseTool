@@ -44,4 +44,18 @@ The Visual Studio screenshot shows `insertInto(string Schema, string TableName, 
 - Validate the dictionary keys with `readAllColumnNames()` and quote each accepted column name before joining the list.
 - The method still ends after opening the connection. Once validation and quoting are in place, return `command.ExecuteNonQuery()` and test against SQL Server.
 
+## 2026-11-19
+
+### Schema-aware reads and inserts on `main`
+
+The schema-aware CRUD work previously recorded as local is now in [the pushed `CRUD.cs` source](https://github.com/thoredethlefs-svg/SQLDatabaseTool/blob/73ba10178702aa9020d34d6e167ec4e9793dd694/SqlManipulationClasses/CRUD.cs).
+
+- `readAllTableNames()` returns `(Schema, TableName)` tuples. `read()` validates the pair, quotes both identifiers, and loads the selected table into a `DataTable`.
+- `readAllColumnNames()` validates the table pair and queries `INFORMATION_SCHEMA.COLUMNS` with schema and table parameters. It returns column names in ordinal order.
+- `insertInto()` rejects empty input, validates the keys against the selected table's columns, and quotes the schema, table, and column identifiers. It binds values as SQL parameters, maps `null` to `DBNull.Value`, and returns the affected-row count from `ExecuteNonQuery()`.
+
+The pushed source was reviewed. Compilation and SQL Server behavior have yet to be verified. Connection setup and the UPDATE and DELETE paths remain open.
+
+Reviewed through [`73ba10178702aa9020d34d6e167ec4e9793dd694`](https://github.com/thoredethlefs-svg/SQLDatabaseTool/commit/73ba10178702aa9020d34d6e167ec4e9793dd694).
+
 Add a dated entry when a milestone is reviewed or pushed. Include the GitHub commit for pushed work and record any local changes and database test results at that point.
