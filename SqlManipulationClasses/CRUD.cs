@@ -120,6 +120,9 @@ namespace SqlManipulationClasses
 
 
         //Insert SQL query
+        //dictonary allows to refference by key (so by an associated value) not by index, like in a list,
+        //so it is more flexible and allows to refference by name, not by index
+        //object? allows to have null values, so it is more flexible and allows to have null values in the dictionary
         public int insertInto(string Schema, string TableName, Dictionary<string, object?> values)
             {
 
@@ -146,6 +149,7 @@ namespace SqlManipulationClasses
 
             foreach (string columnName in columnNames)
                 {
+                //!validColumns ! changes it to the opposite, so this says if it is not the same as validColumns
                 if (!validColumns.Contains(columnName))
                     {
                     throw new ArgumentException($"Column name '{columnName}' not valid for table '{TableName}'.");
@@ -168,7 +172,10 @@ namespace SqlManipulationClasses
 
             for (int i = 0; i < parameterNames.Count; i++)
                 {
+                //?? = Use the actual value if one exists. Otherwise, use DBNull.Value, it replaces an if else statment, it is a null coalescing operator,
+                //check if the value is null, if it is not null use the actual value, if it is null use DBNull.Value
                 command.Parameters.AddWithValue(parameterNames[i], columnValues[i] ?? DBNull.Value);
+                //DBnull.Value is used to make sure that if a value is NULL the batabase understands it in SQL, because SQL does not understand C# null, it needs DBNull.Value to understand it
                 }
 
             sqlConnectionReturnedValue.Open();
